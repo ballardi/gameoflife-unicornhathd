@@ -6,23 +6,23 @@ from enum import Enum
 from random import randint
 
 SHOW_STATE_CHANGE_INDICATOR = False;
-SLEEP_BETWEEN_FRAMES = 0.15
+SLEEP_BETWEEN_FRAMES = .05
 
 # "none", "position", "time"
 COLORS = "time"
 
 STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0],
-                 [0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
-                 [0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
-                 [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -38,6 +38,12 @@ class Game:
         self.boardSize = 16;
         self.boardA = Game._generateAnInitializedBoard(self.boardSize)
         self.boardB = Game._generateAnInitializedBoard(self.boardSize)
+        
+        self.prevBoardHashed = -1
+        self.activeBoardHashed = -1
+
+        self.consecutiveTimeWithoutChange = 0
+        self.consecutiveTimeAlternatingBetween2States = 0
 
     def _getActiveBoard(self):
         if (self.activeBoard == "a"):
@@ -105,12 +111,12 @@ class Game:
         activeBoard = self._getActiveBoard();
         inactiveBoard = self._getInactiveBoard();
         
-        livingNodesInNewState = 0
-        nodesRemainingSame = 0
+        newBoardHashed = 0
         
         # for each node in inactiveBoard
         for y in range(self.boardSize):
             for x in range(self.boardSize):
+                
                 # calculate new state based on activeBoard state
                 currentLiveNeighbours = self._countLiveNeighbours(activeBoard,x,y)
                 
@@ -120,8 +126,6 @@ class Game:
                     if(currentLiveNeighbours == 2 or currentLiveNeighbours == 3): 
                         inactiveBoard[x][y].on = 1
                         inactiveBoard[x][y].onAge += 1
-                        livingNodesInNewState += 1
-                        nodesRemainingSame += 1
                     # Any live cell with fewer than two live neighbours dies, as if by underpopulation.
                     # Any live cell with more than three live neighbours dies, as if by overpopulation.
                     else:
@@ -132,28 +136,52 @@ class Game:
                     if(currentLiveNeighbours == 3): 
                         inactiveBoard[x][y].on = 1
                         inactiveBoard[x][y].onAge = 1
-                        livingNodesInNewState += 1
                     else:
                         inactiveBoard[x][y].on = 0
                         inactiveBoard[x][y].onAge = 0
-                        nodesRemainingSame += 1
-                        
-        # add random cells if board is dying out, or isn't changing
-        if(livingNodesInNewState < 10 or nodesRemainingSame == 16*16):
-            
-            x, y = randint(0,15), randint(0,15)
-
-            #create 3 nodes
-            for i in range(0, 4):
-                x = max(0,min(x + randint(-1,2), 15))
-                y = max(0,min(y + randint(-1,1), 15))
                 
+                # continue constructing hash
+                newBoardHashed = newBoardHashed << 1
+                if(inactiveBoard[x][y].on == 1):
+                    newBoardHashed += 1
+
+        # note we use bitwise xor to check equality of the hashes
+        # because == was evaluating to false incorrectly in some cases.
+
+        if (str(self.activeBoardHashed ^ newBoardHashed) == str(0)):
+            # new board is same as current
+            self.consecutiveTimeWithoutChange += 1
+            self.consecutiveTimeAlternatingBetween2States = 0
+        elif(str(self.prevBoardHashed ^ newBoardHashed) == str(0)):
+            # new board is different from current but same as previous
+            self.consecutiveTimeWithoutChange = 0
+            self.consecutiveTimeAlternatingBetween2States += 1
+        else:
+            # new board is different from both current and previous
+            self.consecutiveTimeWithoutChange = 0
+            self.consecutiveTimeAlternatingBetween2States = 0
+
+        # if board is stuck for a period of time (of random length), create new life
+        stuckTimeToQualifyForNewLife = randint(20,50)
+        if(self.consecutiveTimeWithoutChange >= stuckTimeToQualifyForNewLife
+           or self.consecutiveTimeAlternatingBetween2States >= stuckTimeToQualifyForNewLife):
+            
+            #create a random number of new living nodes
+            # choose a spot for first one that's not on the edge
+            x, y = randint(3,12), randint(3,12) 
+            for i in range(0, randint(3,8)):
+                # if the note isn't alive, make it alive
                 if(inactiveBoard[x][y].on == 0):
                     inactiveBoard[x][y].on = 1
                     inactiveBoard[x][y].onAge += 1
+                # for the next node to make live, select randomly nearby this one
+                x = max(0,min(x + randint(-1,1), 15))
+                y = max(0,min(y + randint(-1,1), 15))
         
         self._flipActiveBoard()
         self.age += 1
+        self.prevBoardHashed = self.activeBoardHashed
+        self.activeBoardHashed = newBoardHashed
     
     @staticmethod
     def _generateAnInitializedBoard(size):
