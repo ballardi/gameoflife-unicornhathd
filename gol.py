@@ -5,23 +5,23 @@ import time, colorsys
 from enum import Enum
 
 STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0],
+                 [0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
+                 [0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]  
 
-SLEEP_BETWEEN_FRAMES = 0.5
+SLEEP_BETWEEN_FRAMES = 0.2
 
 #############################
 class BoardState(Enum):
@@ -44,35 +44,90 @@ class Board:
         else:
             return self.boardB
     
+    def _getOffBoard(self):
+        if (self.state == BoardState.A):
+            return self.boardB
+        else:
+            return self.boardA
+    
+    def _flipOffBoard(self):
+        if (self.state == BoardState.A):
+            self.state = BoardState.B
+        else:
+            self.state = BoardState.A
+
+    
     def getNode(self,x,y):
-        if(x < 0 | x >= self.boardSize):
+        if(x < 0 or x >= self.boardSize):
             raise Exception("invalid x: " + x)
-        if(y < 0 | y >= self.boardSize):
+        if(y < 0 or y >= self.boardSize):
             raise Exception("invalid y: " + y)
         
         b = self._getCurrentBoard();
         return b[x][y]
     
-    def _countLiveNeighbours(board, x, y):
-        if(x < 0 | x >= self.boardSize):
-            raise Exception("invalid x: " + x)
-        if(y < 0 | y >= self.boardSize):
-            raise Exception("invalid y: " + y)
+    def _returnNodeValOr0(self, board, x, y):
+        if(x < 0 or x >= self.boardSize):
+            return 0
+        if(y < 0 or y >= self.boardSize):
+            return 0
 
+        return board[x][y].on
+    
+    def _countLiveNeighbours(self,board, x, y):
+        if(x < 0 or x >= self.boardSize):
+            raise Exception("invalid x: " + x)
+        if(y < 0 or y >= self.boardSize):
+            raise Exception("invalid y: " + y)
+        
+        counter = 0;
+
+        if(self._returnNodeValOr0(board,x-1,y-1) == 1):
+            counter = counter + 1
+        if(self._returnNodeValOr0(board,x-0,y-1) == 1):
+            counter = counter + 1
+        if(self._returnNodeValOr0(board,x+1,y-1) == 1):
+            counter = counter + 1
+        if(self._returnNodeValOr0(board,x-1,y-0) == 1):
+            counter = counter + 1
+        if(self._returnNodeValOr0(board,x+1,y-0) == 1):
+            counter = counter + 1
+        if(self._returnNodeValOr0(board,x-1,y+1) == 1):
+            counter = counter + 1
+        if(self._returnNodeValOr0(board,x-0,y+1) == 1):
+            counter = counter + 1
+        if(self._returnNodeValOr0(board,x+1,y+1) == 1):
+            counter = counter + 1
+        
+        return counter
     
     def advanceState(self):
-        # TODO update state of off board
-        # Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-        # Any live cell with two or three live neighbours lives on to the next generation.
-        # Any live cell with more than three live neighbours dies, as if by overpopulation.
-        # Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-
+        current = self._getCurrentBoard();
+        off = self._getOffBoard();
         
-        # flip state flag
-        if (self.state == BoardState.A):
-            self.state = BoardState.B
-        else:
-            self.state = BoardState.A
+        # for each node in off state
+        for y in range(self.boardSize):
+            for x in range(self.boardSize):
+                # calculate new state based on current state
+                currentLiveNeighbours = self._countLiveNeighbours(current,x,y)
+                
+                # if current cell is live
+                if(current[x][y].on == 1):
+                    # Any live cell with two or three live neighbours lives on to the next generation.
+                    if(currentLiveNeighbours == 2 or currentLiveNeighbours == 3): 
+                        off[x][y].on = 1
+                    # Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                    # Any live cell with more than three live neighbours dies, as if by overpopulation.
+                    else:
+                        off[x][y].on = 0
+                else:
+                    # Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+                    if(currentLiveNeighbours == 3): 
+                        off[x][y].on = 1
+                    else:
+                        off[x][y].on = 0
+        
+        self._flipOffBoard() # flip state flag
     
     @staticmethod
     def _generateAnInitializedBoard(size):
@@ -133,7 +188,7 @@ try:
         # overwrite first pixel with blinker
         blinkerState = 1 - blinkerState
         unicornhathd.set_pixel_hsv(0,0,0.4,1,blinkerState*.1) #xyhsv
-        
+
         unicornhathd.show() # show the pixels
         
         board.advanceState()
