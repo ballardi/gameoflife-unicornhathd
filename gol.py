@@ -6,6 +6,10 @@ from enum import Enum
 
 SHOW_STATE_CHANGE_INDICATOR = False;
 SLEEP_BETWEEN_FRAMES = 0.2
+
+# "none", "position", "time"
+COLORS = "time"
+
 STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0],
@@ -13,7 +17,7 @@ STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
                  [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
@@ -28,6 +32,7 @@ class Game:
     
     # constructor
     def __init__(self):
+        self.age = 0
         self.activeBoard = "a"
         self.boardSize = 16;
         self.boardA = Game._generateAnInitializedBoard(self.boardSize)
@@ -127,6 +132,7 @@ class Game:
                         
         
         self._flipActiveBoard()
+        self.age += 1
     
     @staticmethod
     def _generateAnInitializedBoard(size):
@@ -151,14 +157,24 @@ class Node:
     
 #############################
 def setPixelForCoord(game,x, y):
-    h = 0.4 # blue
-    s = 1.0 # saturation
+    
+    #color
+    if(COLORS == "position"):
+        h = 0.5+(x+y)*0.01
+    elif(COLORS == "time"):
+        h = game.age*0.01 % 1
+    else: # "none"
+        h = 0.4 # blue
+    
+    s = 0.95 # saturation
 
-    v = 0 # brightness
+    # brightness
     if(game.getNode(x,y).on == 1):
         v = 1 - (float)(game.getNode(x,y).onAge*0.3)
         v = max(v, 0.2)
-    
+    else:
+        v = 0
+
     # convert the hsv back to RGB
     rgb = colorsys.hsv_to_rgb(h, s, v) 
     
