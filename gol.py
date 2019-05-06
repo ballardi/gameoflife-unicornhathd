@@ -3,6 +3,7 @@
 import unicornhathd
 import time, colorsys
 from enum import Enum
+from random import randint
 
 SHOW_STATE_CHANGE_INDICATOR = False;
 SLEEP_BETWEEN_FRAMES = 0.2
@@ -10,7 +11,7 @@ SLEEP_BETWEEN_FRAMES = 0.2
 # "none", "position", "time"
 COLORS = "time"
 
-STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+STARTING_VALS_good = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
@@ -22,6 +23,23 @@ STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]  
+
+STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -104,6 +122,9 @@ class Game:
         activeBoard = self._getActiveBoard();
         inactiveBoard = self._getInactiveBoard();
         
+        livingNodesInNewState = 0
+        nodesRemainingSame = 0
+        
         # for each node in inactiveBoard
         for y in range(self.boardSize):
             for x in range(self.boardSize):
@@ -116,6 +137,8 @@ class Game:
                     if(currentLiveNeighbours == 2 or currentLiveNeighbours == 3): 
                         inactiveBoard[x][y].on = 1
                         inactiveBoard[x][y].onAge += 1
+                        livingNodesInNewState += 1
+                        nodesRemainingSame += 1
                     # Any live cell with fewer than two live neighbours dies, as if by underpopulation.
                     # Any live cell with more than three live neighbours dies, as if by overpopulation.
                     else:
@@ -126,10 +149,25 @@ class Game:
                     if(currentLiveNeighbours == 3): 
                         inactiveBoard[x][y].on = 1
                         inactiveBoard[x][y].onAge = 1
+                        livingNodesInNewState += 1
                     else:
                         inactiveBoard[x][y].on = 0
                         inactiveBoard[x][y].onAge = 0
+                        nodesRemainingSame += 1
                         
+        # add random cells if board is dying out, or isn't changing
+        if(livingNodesInNewState < 10 or nodesRemainingSame == 16*16):
+            
+            x, y = randint(0,15), randint(0,15)
+
+            #create 3 nodes
+            for i in range(0, 4):
+                x = max(0,min(x + randint(-1,2), 15))
+                y = max(0,min(y + randint(-1,1), 15))
+                
+                if(inactiveBoard[x][y].on == 0):
+                    inactiveBoard[x][y].on = 1
+                    inactiveBoard[x][y].onAge += 1
         
         self._flipActiveBoard()
         self.age += 1
@@ -200,6 +238,7 @@ blinkerState = 0
 try:
 
     while True:
+        
         # update pixels with current state
         for y in range(16):
             for x in range(16):
