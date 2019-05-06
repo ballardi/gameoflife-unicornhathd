@@ -4,6 +4,8 @@ import unicornhathd
 import time, colorsys
 from enum import Enum
 
+SHOW_STATE_CHANGE_INDICATOR = False;
+SLEEP_BETWEEN_FRAMES = 0.2
 STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0],
@@ -20,8 +22,6 @@ STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]  
-
-SLEEP_BETWEEN_FRAMES = 0.2
 
 #############################
 class BoardState(Enum):
@@ -178,22 +178,22 @@ blinkerState = 0
 try:
 
     while True:
-        print(board.state)
-
         # update pixels with current state
         for y in range(16):
             for x in range(16):
                 setPixelForCoord(board,x,y)
-        
-        # overwrite first pixel with blinker
-        blinkerState = 1 - blinkerState
-        unicornhathd.set_pixel_hsv(0,0,0.4,1,blinkerState*.1) #xyhsv
+
+        if (SHOW_STATE_CHANGE_INDICATOR):
+            # overwrite first pixel with blinker
+            blinkerState = 1 - blinkerState
+            unicornhathd.set_pixel_hsv(0,0,0.4,1,blinkerState*.1) #xyhsv
 
         unicornhathd.show() # show the pixels
-        
+
         board.advanceState()
-        time.sleep(SLEEP_BETWEEN_FRAMES) # waiting time between heartbeats
+        time.sleep(SLEEP_BETWEEN_FRAMES)
 
 except KeyboardInterrupt:
     unicornhathd.off()
+
 
