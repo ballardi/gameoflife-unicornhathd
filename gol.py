@@ -11,8 +11,8 @@ STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
                  [0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                 [0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -110,16 +110,21 @@ class Game:
                     # Any live cell with two or three live neighbours lives on to the next generation.
                     if(currentLiveNeighbours == 2 or currentLiveNeighbours == 3): 
                         inactiveBoard[x][y].on = 1
+                        inactiveBoard[x][y].onAge += 1
                     # Any live cell with fewer than two live neighbours dies, as if by underpopulation.
                     # Any live cell with more than three live neighbours dies, as if by overpopulation.
                     else:
                         inactiveBoard[x][y].on = 0
+                        inactiveBoard[x][y].onAge = 0
                 else:
                     # Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
                     if(currentLiveNeighbours == 3): 
                         inactiveBoard[x][y].on = 1
+                        inactiveBoard[x][y].onAge = 1
                     else:
                         inactiveBoard[x][y].on = 0
+                        inactiveBoard[x][y].onAge = 0
+                        
         
         self._flipActiveBoard()
     
@@ -133,19 +138,26 @@ class Game:
         for y in range(16):
             for x in range(16):
                 board[x][y].on = STARTING_VALS[x][y]
+                if(board[x][y].on):
+                    board[x][y].onAge = 1;
         
         return board
     
 
 #############################
 class Node:
-    on = 0
+    on = 0 # is the node alive now
+    onAge = 0 # count of consecutive cycles alive
     
 #############################
 def setPixelForCoord(game,x, y):
     h = 0.4 # blue
     s = 1.0 # saturation
-    v = game.getNode(x,y).on*.1 # brightness
+
+    v = 0 # brightness
+    if(game.getNode(x,y).on == 1):
+        v = 1 - (float)(game.getNode(x,y).onAge*0.3)
+        v = max(v, 0.2)
     
     # convert the hsv back to RGB
     rgb = colorsys.hsv_to_rgb(h, s, v) 
