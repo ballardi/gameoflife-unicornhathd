@@ -24,38 +24,32 @@ STARTING_VALS = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]  
 
 #############################
-class BoardState(Enum):
-     A = 0
-     B = 1
-
-#############################
-class Board:
+class Game:
     
     # constructor
     def __init__(self):
-        self.state = BoardState.A
+        self.activeBoard = "a"
         self.boardSize = 16;
-        self.boardA = Board._generateAnInitializedBoard(self.boardSize)
-        self.boardB = Board._generateAnInitializedBoard(self.boardSize)
+        self.boardA = Game._generateAnInitializedBoard(self.boardSize)
+        self.boardB = Game._generateAnInitializedBoard(self.boardSize)
 
-    def _getCurrentBoard(self):
-        if (self.state == BoardState.A):
+    def _getActiveBoard(self):
+        if (self.activeBoard == "a"):
             return self.boardA
         else:
             return self.boardB
     
-    def _getOffBoard(self):
-        if (self.state == BoardState.A):
+    def _getInactiveBoard(self):
+        if (self.activeBoard == "a"):
             return self.boardB
         else:
             return self.boardA
     
-    def _flipOffBoard(self):
-        if (self.state == BoardState.A):
-            self.state = BoardState.B
+    def _flipActiveBoard(self):
+        if (self.activeBoard == "a"):
+            self.activeBoard = "b"
         else:
-            self.state = BoardState.A
-
+            self.activeBoard = "a"
     
     def getNode(self,x,y):
         if(x < 0 or x >= self.boardSize):
@@ -63,7 +57,7 @@ class Board:
         if(y < 0 or y >= self.boardSize):
             raise Exception("invalid y: " + y)
         
-        b = self._getCurrentBoard();
+        b = self._getActiveBoard();
         return b[x][y]
     
     def _returnNodeValOr0(self, board, x, y):
@@ -102,32 +96,32 @@ class Board:
         return counter
     
     def advanceState(self):
-        current = self._getCurrentBoard();
-        off = self._getOffBoard();
+        activeBoard = self._getActiveBoard();
+        inactiveBoard = self._getInactiveBoard();
         
-        # for each node in off state
+        # for each node in inactiveBoard
         for y in range(self.boardSize):
             for x in range(self.boardSize):
-                # calculate new state based on current state
-                currentLiveNeighbours = self._countLiveNeighbours(current,x,y)
+                # calculate new state based on activeBoard state
+                currentLiveNeighbours = self._countLiveNeighbours(activeBoard,x,y)
                 
-                # if current cell is live
-                if(current[x][y].on == 1):
+                # if activeBoard cell is live
+                if(activeBoard[x][y].on == 1):
                     # Any live cell with two or three live neighbours lives on to the next generation.
                     if(currentLiveNeighbours == 2 or currentLiveNeighbours == 3): 
-                        off[x][y].on = 1
+                        inactiveBoard[x][y].on = 1
                     # Any live cell with fewer than two live neighbours dies, as if by underpopulation.
                     # Any live cell with more than three live neighbours dies, as if by overpopulation.
                     else:
-                        off[x][y].on = 0
+                        inactiveBoard[x][y].on = 0
                 else:
                     # Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
                     if(currentLiveNeighbours == 3): 
-                        off[x][y].on = 1
+                        inactiveBoard[x][y].on = 1
                     else:
-                        off[x][y].on = 0
+                        inactiveBoard[x][y].on = 0
         
-        self._flipOffBoard() # flip state flag
+        self._flipActiveBoard()
     
     @staticmethod
     def _generateAnInitializedBoard(size):
@@ -148,10 +142,10 @@ class Node:
     on = 0
     
 #############################
-def setPixelForCoord(board,x, y):
+def setPixelForCoord(game,x, y):
     h = 0.4 # blue
     s = 1.0 # saturation
-    v = board.getNode(x,y).on*.1 # brightness
+    v = game.getNode(x,y).on*.1 # brightness
     
     # convert the hsv back to RGB
     rgb = colorsys.hsv_to_rgb(h, s, v) 
@@ -172,7 +166,7 @@ unicornhathd.brightness(1)
 #need to rotate the image to have the heart the right way up
 unicornhathd.rotation(90)
 
-board = Board()
+game = Game()
 blinkerState = 0
 
 try:
@@ -181,7 +175,7 @@ try:
         # update pixels with current state
         for y in range(16):
             for x in range(16):
-                setPixelForCoord(board,x,y)
+                setPixelForCoord(game,x,y)
 
         if (SHOW_STATE_CHANGE_INDICATOR):
             # overwrite first pixel with blinker
@@ -190,7 +184,7 @@ try:
 
         unicornhathd.show() # show the pixels
 
-        board.advanceState()
+        game.advanceState()
         time.sleep(SLEEP_BETWEEN_FRAMES)
 
 except KeyboardInterrupt:
